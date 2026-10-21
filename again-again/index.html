@@ -648,7 +648,7 @@ const IN_CLAUDE=!!(window.claude&&typeof window.claude.use==="function");
 const canSheet=!!SHEET_URL&&!IN_CLAUDE;
 const canForm=!!SEND_URL&&!IN_CLAUDE&&/^https?:$/.test(location.protocol);
 const AUTO=canSheet||canForm;
-const LS_KEY="aa-garowa-respostas-v2",TH_KEY="aa-garowa-tema";
+const LS_KEY="aa-garowa-respostas-v2"+(TESTE?"-teste":""),TH_KEY="aa-garowa-tema";
 const QM=Object.fromEntries(QS.map(q=>[q.n,q]));
 const TOTAL=QS.length;
 const QID=Object.fromEntries(QS.filter(q=>q.id).map(q=>[q.id,q.n]));
@@ -851,7 +851,7 @@ const R={text:rText,single:rSingle,multi:rMulti,palette:rPalette,rank:rRank,scal
 /* ---------- telas ---------- */
 function header(o={}){const b=o.b;const pct=doneCount()/TOTAL;
  const ticks=BLOCKS.map(bb=>`<span class="tick" style="left:${((firstOf(bb.n)-1)/TOTAL*100).toFixed(2)}%"></span>`).join("");
- return `<header class="head"><div class="frame">${LOGO}${o.label?`<span class="blk mono">${o.label}</span>`:""}<span class="sp"></span>${o.save?`<span class="save mono" id="save" role="status">${esc(UI.saveTxt)}</span>`:""}${o.idx?`<button type="button" class="hbtn mono" data-act="idx" aria-label="Abrir índice">Índice</button>`:""}${themeBtn()}${o.n?`<span class="vr hide-m"></span><span class="cnt mono tnum">${p2(o.n)}<span> / ${TOTAL}</span></span>`:""}</div>${o.prog?`<div class="prog" aria-hidden="true"><span class="fill" style="transform:scaleX(${pct})"></span>${ticks}</div>`:""}</header>${!LS_OK&&!UI.lsWarned&&!NOSAVE?`<div class="banner"><div class="frame"><span>Não estamos conseguindo guardar o progresso. Evite fechar esta página até o fim.</span><button type="button" class="btn-t" data-act="ls-ok">Entendi</button></div></div>`:""}${NOSAVE?`<div class="preview-bar"><div class="frame"><span class="mono">Modo prévia. Nada do que você responder aqui é salvo.</span><button type="button" class="mono" data-act="p-exit-preview">Voltar ao painel</button></div></div>`:""}`}
+ return `<header class="head"><div class="frame">${LOGO}${o.label?`<span class="blk mono">${o.label}</span>`:""}<span class="sp"></span>${o.save?`<span class="save mono" id="save" role="status">${esc(UI.saveTxt)}</span>`:""}${o.idx?`<button type="button" class="hbtn mono" data-act="idx" aria-label="Abrir índice">Índice</button>`:""}${themeBtn()}${o.n?`<span class="vr hide-m"></span><span class="cnt mono tnum">${p2(o.n)}<span> / ${TOTAL}</span></span>`:""}</div>${o.prog?`<div class="prog" aria-hidden="true"><span class="fill" style="transform:scaleX(${pct})"></span>${ticks}</div>`:""}</header>${!LS_OK&&!UI.lsWarned&&!NOSAVE?`<div class="banner"><div class="frame"><span>Não estamos conseguindo guardar o progresso. Evite fechar esta página até o fim.</span><button type="button" class="btn-t" data-act="ls-ok">Entendi</button></div></div>`:""}${TESTE?`<div class="preview-bar"><div class="frame"><span class="mono">Modo teste. O envio vai marcado como teste na planilha e no e-mail.</span></div></div>`:""}${NOSAVE?`<div class="preview-bar"><div class="frame"><span class="mono">Modo prévia. Nada do que você responder aqui é salvo.</span><button type="button" class="mono" data-act="p-exit-preview">Voltar ao painel</button></div></div>`:""}`}
 function sIntro(){const resume=hasProgress(S)&&!NOSAVE;
  if(resume){const n=resumeTarget();const qn=QM[S.last||1];const b=BLOCKS[qn.b-1];
   return header()+`<main class="frame"><section class="intro"><div class="txt"><span class="eyebrow mono">Garowa × Again & Again · Estudo de marca</span><h1 tabindex="-1">Bem-vinda de volta.</h1><p class="lead">Você parou na pergunta ${S.last||1} de ${TOTAL}, no bloco ${p2(b.n)} ${esc(b.t)}. ${countDone(S.answers)} respostas já estão guardadas.</p><div class="acts"><button type="button" class="btn btn-p" data-act="resume">Continuar de onde parei <span class="ar">→</span></button><button type="button" class="btn-t" data-act="idx-read">Ver o índice</button></div>
@@ -1080,13 +1080,15 @@ function fmsg(t){UI.final.msg=t;const el=document.getElementById("fmsg");if(el)e
 function doSend(){if(MODE!=="A"&&AUTO)return sendMail();if(!DB||!UID){UI.final.failed=true;rerender();return}UI.final.sending=true;UI.final.failed=false;rerender();const prev=S.submittedAt;S.submittedAt=Date.now();saveLocal();
  pushRemote().then(()=>{UI.final.sending=false;announce("Respostas enviadas à Garowa");rerender()},()=>{S.submittedAt=prev;saveLocal();UI.final.sending=false;UI.final.failed=true;rerender()})}
 function postForm(){const c=countDone(S.answers);
- const body={_subject:`Again & Again · respostas do questionário (${c} de ${TOTAL})`,_template:"table",_captcha:"false","Respondidas":`${c} de ${TOTAL}`,"Enviado em":fmtDT(Date.now())};
+ const body={_subject:`${TESTE?"[TESTE] ":""}Again & Again · respostas do questionário (${c} de ${TOTAL})`,_template:"table",_captcha:"false","Respondidas":`${c} de ${TOTAL}`,"Enviado em":fmtDT(Date.now())};
  QS.forEach(q=>{const t=q.t.length>70?q.t.slice(0,68)+"…":q.t;body[`P${p2(q.n)} · ${t}`]=(fmtQ(q.n)||"Sem resposta").replace(/\n/g," · ")});
  const code=(summaryText(S.answers,S).match(/AAQ1\.[A-Za-z0-9+/=]+/)||[""])[0];body["Código para o painel (não apague)"]=code;
  const ctl=typeof AbortController==="function"?new AbortController():null;const to=setTimeout(()=>ctl&&ctl.abort(),25000);
  return fetch(SEND_URL,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body),signal:ctl?ctl.signal:undefined})
  .then(r=>r.json().catch(()=>({})).then(j=>{clearTimeout(to);if(!r.ok||j.success===false||j.success==="false")throw 0}),e=>{clearTimeout(to);throw e})}
-function deliver(){if(canSheet&&!S.rid){S.rid=newRid();saveLocal()}return (canSheet?postSheet(sheetBody("final")):Promise.reject()).catch(()=>canForm?postForm():Promise.reject())}
+function deliver(){if(canSheet&&!S.rid){S.rid=newRid();saveLocal()}
+ if(TESTE){const a=canSheet?postSheet(sheetBody("final")):Promise.reject(),b=canForm?postForm():Promise.reject();return a.catch(()=>b).then(r=>b.catch(()=>{}).then(()=>r))}
+ return (canSheet?postSheet(sheetBody("final")):Promise.reject()).catch(()=>canForm?postForm():Promise.reject())}
 function delivered(){S.submittedAt=Date.now();S.pending=false;S.syncedAt=S.updatedAt||0;saveLocal()}
 function sendMail(){UI.final.sending=true;UI.final.failed=false;rerender();clearTimeout(draftTimer);
  deliver().then(()=>{delivered();UI.final.sending=false;UI.final.failed=false;announce("Respostas enviadas à Garowa");rerender()},()=>{S.pending=true;saveLocal();UI.final.sending=false;UI.final.failed=true;rerender()})}
